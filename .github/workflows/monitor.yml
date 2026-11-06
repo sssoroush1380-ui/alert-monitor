@@ -10,12 +10,13 @@ concurrency: alert-monitor
 jobs:
   run:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - uses: actions/cache@v4
+      - uses: actions/cache/restore@v4
         with:
           path: state.json
           key: state-${{ github.run_id }}
@@ -24,3 +25,11 @@ jobs:
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
+          HEARTBEAT_HOURS: ${{ vars.HEARTBEAT_HOURS }}
+          TELEGRAM_CHANNELS: ${{ vars.TELEGRAM_CHANNELS }}
+      # Save state even if a send failed, so the next run doesn't repeat alerts.
+      - uses: actions/cache/save@v4
+        if: always() && hashFiles('state.json') != ''
+        with:
+          path: state.json
+          key: state-${{ github.run_id }}
